@@ -43,6 +43,7 @@ interface ThemeConfig {
   cardBg: string;
   text: string;
   accent: string;
+  treeBgImage?: string;
 }
 
 // --- Components ---
@@ -76,32 +77,34 @@ const MemberNode = ({ member, x, y, isSelected, onClick, theme }:
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1, x: x - 65, y: y - 45 }}
-      whileHover={{ scale: 1.05 }}
+      animate={{ opacity: 1, scale: 1, x: x - 75, y: y - 50 }}
+      whileHover={{ scale: 1.05, zIndex: 30 }}
       onClick={onClick}
       style={{ 
-        backgroundColor: isSelected ? `${theme.primary}10` : theme.cardBg,
+        backgroundColor: theme.cardBg,
         borderColor: isSelected ? theme.primary : (isMale ? `${theme.primary}30` : `${theme.accent}30`),
-        color: theme.text
+        boxShadow: isSelected ? `0 0 0 4px ${theme.primary}20, 0 20px 40px -10px rgba(0,0,0,0.2)` : '0 10px 20px -5px rgba(0,0,0,0.1)'
       }}
-      className={`absolute w-[130px] cursor-pointer p-4 rounded-2xl border-2 transition-all duration-500 shadow-sm
-        ${isSelected ? 'scale-110 z-10 shadow-2xl' : 'hover:shadow-md'}`}
+      className={`absolute w-[150px] h-[100px] cursor-pointer rounded-2xl border-2 flex flex-row items-center p-3 transition-all duration-500
+        ${isSelected ? 'z-20' : ''}`}
     >
-      <div className="flex flex-col items-center text-center space-y-2 relative">
-        <Leaf className="absolute -top-6 -right-6 opacity-20 rotate-45" style={{ color: theme.primary }} size={24} fill="currentColor" />
-        
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center`} style={{ backgroundColor: isMale ? `${theme.primary}20` : `${theme.accent}20`, color: isMale ? theme.primary : theme.accent }}>
-          <User size={20} />
+      <div className="flex flex-row items-center text-left w-full space-x-3">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-inner shrink-0`} 
+          style={{ 
+            backgroundColor: isMale ? `${theme.primary}10` : `${theme.accent}10`, 
+            color: isMale ? theme.primary : theme.accent 
+          }}>
+          <User size={24} />
         </div>
-        <div>
-          <h3 className="text-sm font-black leading-tight" style={{ color: theme.text }}>{member.firstName}</h3>
-          <p className="text-[10px] font-bold uppercase tracking-tighter opacity-60">{member.lastName}</p>
+        <div className="overflow-hidden">
+          <h3 className="text-[13px] font-black leading-tight truncate" style={{ color: theme.text }}>{member.firstName}</h3>
+          <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 truncate">{member.lastName}</p>
+          {(member.birthYear || member.deathYear) && (
+            <p className="text-[9px] font-mono opacity-40 mt-0.5 truncate">
+              {member.birthYear || '?'}{member.deathYear ? ` — ${member.deathYear}` : ''}
+            </p>
+          )}
         </div>
-        {(member.birthYear || member.deathYear) && (
-          <p className="text-[10px] opacity-40 font-mono">
-            {member.birthYear || '?'}{member.deathYear ? ` — ${member.deathYear}` : ''}
-          </p>
-        )}
       </div>
     </motion.div>
   );
@@ -148,6 +151,18 @@ const SettingsSection = ({ theme, setTheme }: { theme: ThemeConfig; setTheme: (t
                 />
               </div>
             ))}
+            
+            <div className="space-y-2 pt-4">
+              <span className="text-sm font-bold opacity-70" style={{ color: theme.text }}>Shajara fon rasmi (URL)</span>
+              <input 
+                type="text" 
+                placeholder="Rasm havola manzili..."
+                value={theme.treeBgImage || ''}
+                onChange={(e) => setTheme({ ...theme, treeBgImage: e.target.value })}
+                className="w-full px-4 py-3 rounded-2xl border-2 outline-none transition-all text-sm"
+                style={{ backgroundColor: `${theme.cardBg}50`, borderColor: `${theme.primary}20`, color: theme.text }}
+              />
+            </div>
           </div>
         </div>
 
@@ -514,11 +529,12 @@ export default function App() {
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [theme, setTheme] = useState<ThemeConfig>({
-    primary: '#059669',
-    background: '#fcfdfa',
-    text: '#111827',
+    primary: '#4E342E',
+    background: '#fdf8f0',
+    text: '#3E2723',
     cardBg: '#ffffff',
-    accent: '#e11d48'
+    accent: '#8d6e63',
+    treeBgImage: 'https://www.transparenttextures.com/patterns/cream-paper.png'
   });
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -529,10 +545,10 @@ export default function App() {
       return { ...member, children: (member.children || []).map(cid => buildNode(cid)).filter(Boolean) };
     };
     const d3Hierarchy = hierarchy(buildNode('1'));
-    const d3Tree = tree().nodeSize([200, 240]);
+    const d3Tree = tree().nodeSize([180, 260]);
     const root = d3Tree(d3Hierarchy) as HierarchyPointNode<any>;
     const treeNodes = root.descendants();
-    treeNodes.forEach(node => { node.y = node.depth * 250; });
+    treeNodes.forEach(node => { node.y = node.depth * 300; });
     return { nodes: treeNodes, links: root.links() };
   }, []);
 
@@ -549,9 +565,9 @@ export default function App() {
       </div>
 
       {/* Navigation Sidebar */}
-      <nav className="w-full lg:w-24 bg-white/60 backdrop-blur-xl border-r border-emerald-100/50 flex flex-row lg:flex-col items-center justify-between lg:justify-start p-4 lg:py-8 z-[60] shadow-xl" style={{ backgroundColor: `${theme.cardBg}90`, borderColor: `${theme.primary}20` }}>
+      <nav className="w-full lg:w-24 bg-white/60 backdrop-blur-xl border border-emerald-100/50 flex flex-row lg:flex-col items-center justify-between lg:justify-start p-4 lg:py-8 z-[60] shadow-xl lg:m-4 lg:rounded-[2.5rem] transition-all duration-500" style={{ backgroundColor: `${theme.cardBg}90`, borderColor: `${theme.primary}20` }}>
         <div className="hidden lg:flex items-center justify-center mb-12">
-          <div className="w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl" style={{ backgroundColor: theme.primary, shadowColor: `${theme.primary}50` }}>
+          <div className="w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl" style={{ backgroundColor: theme.primary }}>
             <TreeDeciduous size={32} />
           </div>
         </div>
@@ -583,8 +599,8 @@ export default function App() {
           
           {activeTab === 'tree' && (
             <>
-              {/* Sidebar Search - Only for Tree view */}
-              <div className="w-80 border-r border-emerald-100/30 bg-white/40 backdrop-blur-xl hidden lg:flex flex-col relative z-20 shadow-sm" style={{ backgroundColor: `${theme.cardBg}40`, borderColor: `${theme.primary}20` }}>
+              {/* Sidebar Search */}
+              <div className="w-80 border border-emerald-100/30 bg-white/40 backdrop-blur-xl hidden lg:flex flex-col relative z-20 shadow-xl lg:my-4 lg:mr-4 lg:rounded-[2.5rem] overflow-hidden transition-all duration-500" style={{ backgroundColor: `${theme.cardBg}40`, borderColor: `${theme.primary}20` }}>
                 <div className="p-8 border-b border-emerald-50 space-y-6" style={{ borderColor: `${theme.primary}10` }}>
                   <div className="space-y-1">
                     <h2 className="text-3xl font-black italic tracking-tighter" style={{ color: theme.text }}>MURATOVLAR</h2>
@@ -604,14 +620,14 @@ export default function App() {
                         ${selectedId === member.id ? 'shadow-xl text-white' : 'hover:bg-white/80'}`}
                       style={{ 
                         backgroundColor: selectedId === member.id ? theme.primary : `${theme.cardBg}40`,
-                        borderColor: selectedId === member.id ? theme.primary : `${theme.primary}10`
+                        borderColor: selectedId === member.id ? theme.primary : 'transparent'
                       }}>
-                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border-2 ${selectedId === member.id ? 'bg-white/20 border-white/40' : (member.gender === 'male' ? 'bg-blue-50 border-blue-100 text-blue-500' : 'bg-rose-50 border-rose-100 text-rose-500')}`}>
-                        <User size={20} />
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border-2 ${selectedId === member.id ? 'bg-white/20 border-white/40' : 'bg-emerald-50 border-emerald-100'}`}>
+                        <User size={20} style={{ color: selectedId === member.id ? 'white' : theme.primary }} />
                       </div>
-                      <div className="text-left">
-                        <p className={`text-sm font-black italic ${selectedId === member.id ? 'text-white' : 'text-gray-900'}`} style={{ color: selectedId === member.id ? '#ffffff' : theme.text }}>{member.firstName}</p>
-                        <p className={`text-[10px] font-bold uppercase tracking-tighter ${selectedId === member.id ? 'text-emerald-100' : 'text-gray-400'}`}>{member.lastName}</p>
+                      <div className="text-left overflow-hidden">
+                        <p className="text-sm font-black italic truncate">{member.firstName}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-tighter opacity-60 truncate">{member.lastName}</p>
                       </div>
                     </button>
                   ))}
@@ -622,7 +638,13 @@ export default function App() {
               <main 
                 className={`flex-1 relative overflow-auto custom-scrollbar scroll-smooth p-10 cursor-grab active:cursor-grabbing transition-all duration-500 ${isFullscreen ? 'fixed inset-0 z-[200]' : ''}`} 
                 ref={containerRef}
-                style={{ backgroundColor: theme.background }}
+                style={{ 
+                  backgroundColor: theme.background,
+                  backgroundImage: theme.treeBgImage ? `url(${theme.treeBgImage})` : 'none',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundAttachment: 'fixed'
+                }}
               >
                 {isFullscreen && (
                   <button 
@@ -637,19 +659,65 @@ export default function App() {
                   className="min-w-[1500px] min-h-[1500px] relative origin-top transition-transform duration-300"
                   style={{ transform: `scale(${zoom})` }}
                 >
-                  <svg className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible" style={{ minWidth: '1500px', minHeight: '1500px' }}>
+                  <svg className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible" style={{ minWidth: '2000px', minHeight: '2000px' }}>
+                    <defs>
+                      <filter id="leafShadow">
+                        <feDropShadow dx="2" dy="2" stdDeviation="2" floodOpacity="0.3" />
+                      </filter>
+                      <linearGradient id="leafGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#86efac" />
+                        <stop offset="50%" stopColor="#22c55e" />
+                        <stop offset="100%" stopColor="#166534" />
+                      </linearGradient>
+                      <radialGradient id="foliageVolume">
+                        <stop offset="0%" stopColor="rgba(34, 197, 94, 0.6)" />
+                        <stop offset="70%" stopColor="rgba(21, 128, 61, 0.2)" />
+                        <stop offset="100%" stopColor="rgba(20, 83, 45, 0)" />
+                      </radialGradient>
+                    </defs>
                     <g transform="translate(750, 100)">
+                      {/* Clean Connecting Lines */}
                       {links.map((link, i) => {
-                        const pathGen = linkVertical().x(d => (d as any)[0]).y(d => (d as any)[1]);
-                        const path = pathGen({ 
-                          source: [(link.source as any).x, (link.source as any).y + 45], 
-                          target: [(link.target as any).x, (link.target as any).y - 45] 
-                        });
+                        const sourceX = (link.source as any).x;
+                        const sourceY = (link.source as any).y + 60;
+                        const targetX = (link.target as any).x;
+                        const targetY = (link.target as any).y - 60;
+                        
+                        const midY = (sourceY + targetY) / 2;
+                        
+                        const d = `M ${sourceX} ${sourceY} 
+                                   L ${sourceX} ${midY} 
+                                   L ${targetX} ${midY} 
+                                   L ${targetX} ${targetY}`;
+
                         return (
                           <g key={`link-${i}`}>
-                            <motion.path initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 1.5, delay: i * 0.05 }}
-                              d={path || ''} fill="none" stroke="#5D4037" strokeWidth={Math.max(2, 6 - (link.source as any).depth * 1.5)} strokeLinecap="round" className="opacity-80" />
-                            <circle cx={(link.source as any).x} cy={(link.source as any).y + 45} r="4" fill="#3E2723" />
+                            {/* Line glow/shadow */}
+                            <motion.path 
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              d={d} 
+                              fill="none" 
+                              stroke="rgba(0,0,0,0.05)" 
+                              strokeWidth={6} 
+                              strokeLinecap="round"
+                              style={{ transform: 'translate(1px, 2px)' }}
+                            />
+                            {/* Main connector line */}
+                            <motion.path 
+                              initial={{ pathLength: 0, opacity: 0 }} 
+                              animate={{ pathLength: 1, opacity: 1 }} 
+                              transition={{ duration: 1.5, delay: i * 0.05 }}
+                              d={d} 
+                              fill="none" 
+                              stroke="#6D4C41" 
+                              strokeWidth={3} 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                            />
+                            {/* Connection dots */}
+                            <circle cx={sourceX} cy={sourceY} r="4" fill="#6D4C41" />
+                            <circle cx={targetX} cy={targetY} r="4" fill="#6D4C41" />
                           </g>
                         );
                       })}
@@ -657,13 +725,7 @@ export default function App() {
                   </svg>
                   <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                     <div className="relative" style={{ transform: 'translate(750px, 100px)' }}>
-                      {/* Artistic Tree Trunk behind nodes */}
-                      <svg className="absolute top-0 left-0 overflow-visible opacity-20" style={{ transform: 'translate(-50%, 0)' }}>
-                        <path d="M 10 1200 Q -50 800 0 400 T 20 0" stroke="#4E342E" strokeWidth="40" fill="none" strokeLinecap="round" />
-                        <path d="M 10 1200 Q 80 900 150 700" stroke="#4E342E" strokeWidth="15" fill="none" strokeLinecap="round" />
-                        <path d="M 10 900 Q -120 750 -200 600" stroke="#4E342E" strokeWidth="12" fill="none" strokeLinecap="round" />
-                      </svg>
-                      
+                      {/* Nodes rendered here */}
                       {nodes.map(node => (
                         <div key={node.data.id} className="pointer-events-auto">
                           <MemberNode member={node.data} x={node.x} y={node.y} isSelected={selectedId === node.data.id} onClick={() => setSelectedId(node.data.id)} theme={theme} />
@@ -672,49 +734,46 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                {/* Floating controls */}
-                <div className={`fixed bottom-10 left-1/2 lg:left-[calc(50%+160px+48px)] -translate-x-1/2 transition-all ${isFullscreen ? 'z-[250]' : 'z-[110]'}`}>
-                   <div className="p-4 rounded-[2.5rem] border shadow-2xl flex gap-4 md:gap-6 items-center backdrop-blur-xl" style={{ backgroundColor: `${theme.cardBg}cc`, borderColor: `${theme.primary}20` }}>
+                {/* Floating controls - Now Top Right and Smaller */}
+                <div className={`fixed top-6 right-6 transition-all ${isFullscreen ? 'z-[250]' : 'z-[110]'}`}>
+                   <div className="p-3 rounded-[1.5rem] border shadow-2xl flex flex-col gap-3 items-center backdrop-blur-xl" style={{ backgroundColor: `${theme.cardBg}cc`, borderColor: `${theme.primary}20` }}>
                      
-                     <div className="flex gap-2 border-r pr-4" style={{ borderColor: `${theme.primary}20` }}>
+                     <div className="flex flex-col gap-1 border-b pb-2" style={{ borderColor: `${theme.primary}20` }}>
                        <button 
                          onClick={() => setZoom(prev => Math.min(prev + 0.1, 2))}
-                         className="p-3 rounded-2xl transition-all hover:bg-emerald-50"
+                         className="p-2 rounded-xl transition-all hover:bg-emerald-50"
                          style={{ color: theme.primary }}
                          title="Yaqinlashtirish"
                        >
-                         <Plus size={20} />
+                         <Plus size={18} />
                        </button>
                        <button 
                          onClick={() => setZoom(prev => Math.max(prev - 0.1, 0.5))}
-                         className="p-3 rounded-2xl transition-all hover:bg-emerald-50"
+                         className="p-2 rounded-xl transition-all hover:bg-emerald-50"
                          style={{ color: theme.primary }}
                          title="Uzoqlashtirish"
                        >
-                         <Minus size={20} />
+                         <Minus size={18} />
                        </button>
                        <button 
                          onClick={() => setIsFullscreen(!isFullscreen)}
-                         className="p-3 rounded-2xl transition-all hover:bg-emerald-50"
+                         className="p-2 rounded-xl transition-all hover:bg-emerald-50"
                          style={{ color: theme.primary }}
                          title={isFullscreen ? "Kichraytirish" : "Yoyish"}
                        >
-                         {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                         {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
                        </button>
                      </div>
 
-                     <button onClick={() => containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })} className="p-4 rounded-3xl transition-all shadow-sm" style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}>
-                       <ChevronUp size={24} />
-                     </button>
-                     <div className="flex flex-col items-center">
-                       <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-1" style={{ color: theme.primary }}>Daraxt Oqimi</span>
-                       <div className="flex items-center gap-3 text-gray-400 font-black text-[8px] uppercase tracking-tighter">
-                         AJODLAR <div className="flex items-center" style={{ color: theme.primary }}><ChevronUp size={10} /><div className="w-10 h-[1px]" style={{ backgroundColor: `${theme.primary}40` }}></div><ChevronDown size={10} /></div> AVLODLAR
-                       </div>
+                     <div className="flex flex-col items-center py-1">
+                       <span className="text-[7px] font-black uppercase tracking-widest leading-none mb-1 opacity-50" style={{ color: theme.primary }}>Oqim</span>
+                       <button onClick={() => containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })} className="p-2 rounded-lg transition-all" style={{ color: theme.primary }}>
+                         <ChevronUp size={16} />
+                       </button>
+                       <button onClick={() => containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' })} className="p-2 rounded-lg transition-all" style={{ color: theme.primary }}>
+                         <ChevronDown size={16} />
+                       </button>
                      </div>
-                     <button onClick={() => containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' })} className="p-4 rounded-3xl transition-all shadow-sm" style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}>
-                       <ChevronDown size={24} />
-                     </button>
                    </div>
                 </div>
               </main>

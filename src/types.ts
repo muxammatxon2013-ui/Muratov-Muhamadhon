@@ -9,8 +9,8 @@ export interface FamilyMember {
   id: string;
   firstName: string;
   lastName: string;
-  birthYear?: number;
-  deathYear?: number;
+  birthYear?: number | string;
+  deathYear?: number | string;
   gender: Gender;
   parents: string[]; // List of IDs (Father, Mother)
   children: string[]; // List of IDs
