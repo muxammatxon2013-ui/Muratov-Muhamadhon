@@ -18,6 +18,7 @@ import {
   Maximize2,
   Minimize2,
   Leaf,
+  ExternalLink,
   Video,
   Lock,
   Unlock,
@@ -29,12 +30,20 @@ import {
   Calendar,
   Settings as SettingsIcon,
   Palette,
-  Type
+  Type,
+  MessageSquare,
+  Send,
+  Sparkles,
+  Bot,
+  Brain,
+  Check,
+  Trash2
 } from 'lucide-react';
 import { hierarchy, tree, HierarchyPointNode } from 'd3-hierarchy';
 import { linkVertical } from 'd3-shape';
 import { MURATOV_DATA, MURATOV_GALLERY, MURATOV_HISTORY } from './data';
 import { FamilyMember, GalleryItem, HistoryEntry } from './types';
+import { GeminiService, ChatMessage } from './services/geminiService';
 
 // --- Types ---
 interface ThemeConfig {
@@ -77,30 +86,30 @@ const MemberNode = ({ member, x, y, isSelected, onClick, theme }:
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1, x: x - 75, y: y - 50 }}
+      animate={{ opacity: 1, scale: 1, x: x - 65, y: y - 40 }}
       whileHover={{ scale: 1.05, zIndex: 30 }}
       onClick={onClick}
       style={{ 
         backgroundColor: theme.cardBg,
-        borderColor: isSelected ? theme.primary : (isMale ? `${theme.primary}30` : `${theme.accent}30`),
-        boxShadow: isSelected ? `0 0 0 4px ${theme.primary}20, 0 20px 40px -10px rgba(0,0,0,0.2)` : '0 10px 20px -5px rgba(0,0,0,0.1)'
+        borderColor: isSelected ? theme.primary : (isMale ? `${theme.primary}15` : `${theme.accent}15`),
+        boxShadow: isSelected ? `0 0 0 4px ${theme.primary}20, 0 25px 50px -12px rgba(0, 0, 0, 0.15)` : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
       }}
-      className={`absolute w-[150px] h-[100px] cursor-pointer rounded-2xl border-2 flex flex-row items-center p-3 transition-all duration-500
+      className={`absolute w-[130px] h-[80px] cursor-pointer rounded-xl border-2 flex flex-row items-center p-2 transition-all duration-500
         ${isSelected ? 'z-20' : ''}`}
     >
-      <div className="flex flex-row items-center text-left w-full space-x-3">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-inner shrink-0`} 
+      <div className="flex flex-row items-center text-left w-full space-x-2">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-inner shrink-0`} 
           style={{ 
             backgroundColor: isMale ? `${theme.primary}10` : `${theme.accent}10`, 
             color: isMale ? theme.primary : theme.accent 
           }}>
-          <User size={24} />
+          <User size={20} />
         </div>
         <div className="overflow-hidden">
-          <h3 className="text-[13px] font-black leading-tight truncate" style={{ color: theme.text }}>{member.firstName}</h3>
-          <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 truncate">{member.lastName}</p>
+          <h3 className="text-[12px] font-black leading-tight truncate" style={{ color: theme.text }}>{member.firstName}</h3>
+          <p className="text-[9px] font-bold uppercase tracking-wider opacity-50 truncate">{member.lastName}</p>
           {(member.birthYear || member.deathYear) && (
-            <p className="text-[9px] font-mono opacity-40 mt-0.5 truncate">
+            <p className="text-[8px] font-mono opacity-40 mt-0.5 truncate">
               {member.birthYear || '?'}{member.deathYear ? ` — ${member.deathYear}` : ''}
             </p>
           )}
@@ -110,7 +119,23 @@ const MemberNode = ({ member, x, y, isSelected, onClick, theme }:
   );
 };
 
-const SettingsSection = ({ theme, setTheme }: { theme: ThemeConfig; setTheme: (t: ThemeConfig) => void }) => {
+const SettingsSection = ({ theme, setTheme }: { theme: ThemeConfig; setTheme: (t: ThemeConfig & { geminiKey?: string }) => void }) => {
+  const [localKey, setLocalKey] = useState((theme as any).geminiKey || '');
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const handleSaveKey = () => {
+    setIsSaving(true);
+    setTimeout(() => {
+      setTheme({ ...theme, geminiKey: localKey } as any);
+      setIsSaving(false);
+    }, 800);
+  };
+
+  const handleRemoveKey = () => {
+    setLocalKey('');
+    setTheme({ ...theme, geminiKey: '' } as any);
+  };
+
   const presets = [
     { name: 'Tabiat (Yashil)', primary: '#059669', background: '#fcfdfa', text: '#111827', accent: '#e11d48', cardBg: '#ffffff' },
     { name: 'Kuz (Tilla)', primary: '#d97706', background: '#fffbeb', text: '#451a03', accent: '#92400e', cardBg: '#ffffff' },
@@ -119,18 +144,18 @@ const SettingsSection = ({ theme, setTheme }: { theme: ThemeConfig; setTheme: (t
   ];
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-12">
-      <div className="text-center space-y-4">
-        <h2 className="text-4xl font-black text-gray-900 tracking-tight italic" style={{ color: theme.text }}>LOYIHA SOZLAMALARI</h2>
-        <p className="font-bold uppercase tracking-widest text-xs" style={{ color: theme.primary }}>Dizayn va ranglarni boshqarish</p>
+    <div className="p-4 sm:p-8 max-w-4xl mx-auto space-y-12 w-full overflow-x-hidden">
+      <div className="text-center space-y-4 px-2">
+        <h2 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight italic" style={{ color: theme.text }}>LOYIHA SOZLAMALARI</h2>
+        <p className="font-bold uppercase tracking-widest text-[10px] sm:text-xs" style={{ color: theme.primary }}>Dizayn va ranglarni boshqarish</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Color Customizer */}
-        <div className="bg-white/50 backdrop-blur-md p-8 rounded-[2.5rem] border border-emerald-100 shadow-xl space-y-8" style={{ backgroundColor: `${theme.cardBg}80`, borderColor: `${theme.primary}20` }}>
-          <div className="flex items-center gap-3 mb-4">
-            <Palette className="text-emerald-500" style={{ color: theme.primary }} />
-            <h3 className="font-black text-lg italic" style={{ color: theme.text }}>Ranglar Paneli</h3>
+        <div className="bg-white/50 backdrop-blur-md p-6 sm:p-8 rounded-[2.5rem] border border-emerald-100 shadow-xl space-y-8 w-full max-w-full overflow-hidden" style={{ backgroundColor: `${theme.cardBg}80`, borderColor: `${theme.primary}20` }}>
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <Palette className="text-emerald-500 shrink-0" style={{ color: theme.primary }} />
+            <h3 className="font-black text-lg italic truncate" style={{ color: theme.text }}>Ranglar Paneli</h3>
           </div>
           
           <div className="space-y-6">
@@ -166,6 +191,81 @@ const SettingsSection = ({ theme, setTheme }: { theme: ThemeConfig; setTheme: (t
           </div>
         </div>
 
+        {/* AI Settings */}
+        <div className="bg-white/50 backdrop-blur-md p-6 sm:p-8 rounded-[2.5rem] border border-emerald-100 shadow-xl space-y-8 w-full max-w-full overflow-hidden" style={{ backgroundColor: `${theme.cardBg}80`, borderColor: `${theme.primary}20` }}>
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <Brain className="text-emerald-500 shrink-0" style={{ color: theme.primary }} />
+            <h3 className="font-black text-lg italic truncate" style={{ color: theme.text }}>Sun'iy Intelekt Sozlamalari</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <p className="text-xs font-bold opacity-60 italic" style={{ color: theme.text }}>
+              Sun'iy intelekt bilan suhbatlashish uchun Gemini API kalitini kiriting.
+              Sizning kalitingiz faqat brauzeringizda saqlanadi.
+            </p>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <span className="text-sm font-bold opacity-70" style={{ color: theme.text }}>Gemini API Kaliti</span>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30" size={18} />
+                    <input 
+                      type="password" 
+                      placeholder="AI-xxxxxxxxxxxxxxxxxxxx"
+                      value={localKey}
+                      onChange={(e) => setLocalKey(e.target.value)}
+                      className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 outline-none transition-all text-sm"
+                      style={{ backgroundColor: `${theme.cardBg}50`, borderColor: `${theme.primary}20`, color: theme.text }}
+                    />
+                  </div>
+                  <AnimatePresence>
+                    {localKey !== (theme as any).geminiKey && localKey.length > 0 && (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.8, x: 20 }}
+                        onClick={handleSaveKey}
+                        disabled={isSaving}
+                        className="px-6 py-4 rounded-2xl bg-emerald-600 text-white font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+                        style={{ backgroundColor: theme.primary }}
+                      >
+                        {isSaving ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <Check size={16} />
+                        )}
+                        {isSaving ? 'Saqlanmoqda...' : 'Faollashtirish'}
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+              
+              <AnimatePresence>
+                {(theme as any).geminiKey && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-600" style={{ color: theme.primary }}>
+                      <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                      API Kalit Faol
+                    </div>
+                    <button 
+                      onClick={handleRemoveKey}
+                      className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 size={12} />
+                      O'chirish
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+
         {/* Presets */}
         <div className="space-y-6">
           <div className="flex items-center gap-3 mb-4">
@@ -177,7 +277,7 @@ const SettingsSection = ({ theme, setTheme }: { theme: ThemeConfig; setTheme: (t
               <button 
                 key={p.name}
                 onClick={() => setTheme(p)}
-                className="flex items-center justify-between p-6 rounded-3xl border-2 transition-all hover:scale-105 group"
+                className="flex items-center justify-between p-4 sm:p-6 rounded-3xl border-2 transition-all hover:scale-105 group"
                 style={{ backgroundColor: p.background, borderColor: theme.primary === p.primary ? p.primary : `${theme.primary}10` }}
               >
                 <span className="font-bold italic" style={{ color: p.text }}>{p.name}</span>
@@ -426,6 +526,135 @@ const HistorySection = ({ theme }: { theme: ThemeConfig }) => (
     </div>
   </div>
 );
+
+const AISection = ({ 
+  theme, 
+  messages, 
+  setMessages,
+  input,
+  setInput
+}: { 
+  theme: ThemeConfig & { geminiKey?: string };
+  messages: { role: 'user' | 'model'; text: string }[];
+  setMessages: React.Dispatch<React.SetStateAction<{ role: 'user' | 'model'; text: string }[]>>;
+  input: string;
+  setInput: React.Dispatch<React.SetStateAction<string>>;
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const apiKey = theme.geminiKey || (process.env as any).GEMINI_API_KEY;
+    
+    if (!apiKey || apiKey === "undefined") {
+      setMessages(prev => [
+        ...prev, 
+        { role: 'user', text: input }, 
+        { role: 'model', text: "Xatolik: AI bilan bog'lanish uchun API kalit topilmadi. Iltimos Sozlamalar bo'limiga o'ting va Gemini API kalitini kiriting." }
+      ]);
+      setInput('');
+      return;
+    }
+
+    setIsLoading(true);
+    const userMsg = input;
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+
+    try {
+      const service = new GeminiService(apiKey);
+      console.log("Sending message to AI...");
+      const history: ChatMessage[] = messages.slice(1).map(m => ({
+        role: m.role,
+        parts: [{ text: m.text }]
+      }));
+      
+      const response = await service.sendMessage(userMsg, history);
+      if (!response) {
+        throw new Error("Empty response from AI");
+      }
+      setMessages(prev => [...prev, { role: 'model', text: response }]);
+    } catch (error: any) {
+      console.error("AI Bot Error:", error);
+      const errorMessage = error?.message || "Noma'lum xatolik";
+      setMessages(prev => [...prev, { role: 'model', text: `Kechirasiz, javob olishda xatolik yuz berdi (${errorMessage}). API kalitini tekshirib ko'ring yoki birozdan so'ng qayta urining.` }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full h-full p-4 lg:p-8">
+      <div className="text-center mb-8 shrink-0">
+        <h2 className="text-4xl font-black tracking-tight italic" style={{ color: theme.text }}>AQLLI YORDAMCHI</h2>
+        <p className="font-bold uppercase tracking-widest text-xs" style={{ color: theme.primary }}>Sun'iy intelekt bilan muloqot</p>
+      </div>
+
+      <div className="flex-1 min-h-0 bg-white/40 backdrop-blur-xl rounded-[3rem] border border-emerald-100 flex flex-col shadow-2xl overflow-hidden" style={{ backgroundColor: `${theme.cardBg}80`, borderColor: `${theme.primary}20` }}>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-6 custom-scrollbar">
+          {messages.map((msg, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div 
+                className={`max-w-[85%] p-5 rounded-[2rem] shadow-sm italic text-sm lg:text-base border ${
+                  msg.role === 'user' 
+                    ? 'bg-emerald-600 text-white rounded-tr-sm' 
+                    : 'bg-white rounded-tl-sm'
+                }`}
+                style={msg.role === 'user' ? { backgroundColor: theme.primary, color: '#fff' } : { backgroundColor: theme.cardBg, color: theme.text, borderColor: `${theme.primary}10` }}
+              >
+                 {msg.text}
+              </div>
+            </motion.div>
+          ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-white/50 p-4 rounded-full flex gap-2">
+                <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
+                <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
+                <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="p-6 border-t shrink-0" style={{ borderColor: `${theme.primary}10` }}>
+          <div className="relative">
+            <input 
+              type="text" 
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Savolingizni yozing..."
+              className="w-full pl-6 pr-16 py-5 bg-white/50 border border-emerald-100 rounded-[2rem] outline-none shadow-inner focus:ring-4 transition-all"
+              style={{ backgroundColor: `${theme.cardBg}50`, borderColor: `${theme.primary}20`, focusRingColor: `${theme.primary}20`, color: theme.text }}
+            />
+            <button 
+              onClick={handleSend}
+              disabled={isLoading || !input.trim()}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-4 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-200 transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:scale-100"
+              style={{ backgroundColor: theme.primary }}
+            >
+              <Send size={20} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 const MemberDetail = ({ member, onClose, onSelectRelative, theme }: 
   { member: FamilyMember; onClose: () => void; onSelectRelative: (id: string) => void; theme: ThemeConfig }) => {
   const spouse = member.spouses.length > 0 ? MURATOV_DATA[member.spouses[0]] : null;
@@ -523,20 +752,33 @@ const MemberDetail = ({ member, onClose, onSelectRelative, theme }:
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'tree' | 'gallery' | 'history' | 'settings'>('tree');
+  const [activeTab, setActiveTab] = useState<'tree' | 'myfamily' | 'gallery' | 'history' | 'ai' | 'settings'>('myfamily');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [theme, setTheme] = useState<ThemeConfig>({
-    primary: '#4E342E',
-    background: '#fdf8f0',
-    text: '#3E2723',
+  const [aiMessages, setAiMessages] = useState<{ role: 'user' | 'model'; text: string }[]>([
+    { role: 'model', text: "Assalomu alaykum! Men Muratovlar oilasining sun'iy intelekt yordamchisiman. Oila a'zolari yoki sulola tarixi haqida istalgan savolingizni berishingiz mumkin." }
+  ]);
+  const [aiInput, setAiInput] = useState('');
+  const [theme, setTheme] = useState<ThemeConfig & { geminiKey?: string }>({
+    primary: '#4f46e5', // Indigo 600
+    background: '#f8fafc', // Slate 50
+    text: '#0f172a', // Slate 900
     cardBg: '#ffffff',
-    accent: '#8d6e63',
-    treeBgImage: 'https://www.transparenttextures.com/patterns/cream-paper.png'
+    accent: '#db2777', // Pink-600
+    treeBgImage: '',
+    geminiKey: ''
   });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Initial scroll to center the tree
+    if (containerRef.current) {
+      containerRef.current.scrollLeft = 10000 - containerRef.current.clientWidth / 2;
+    }
+  }, []);
 
   const { nodes, links } = useMemo(() => {
     const buildNode = (id: string): any => {
@@ -544,13 +786,17 @@ export default function App() {
       if (!member) return null;
       return { ...member, children: (member.children || []).map(cid => buildNode(cid)).filter(Boolean) };
     };
-    const d3Hierarchy = hierarchy(buildNode('1'));
-    const d3Tree = tree().nodeSize([180, 260]);
+    
+    // Default root is '1' (ancestor), but if 'myfamily' is active, start from Musohon ('11d')
+    const rootId = activeTab === 'myfamily' ? '11d' : '1';
+    
+    const d3Hierarchy = hierarchy(buildNode(rootId));
+    const d3Tree = tree().nodeSize([400, 280]);
     const root = d3Tree(d3Hierarchy) as HierarchyPointNode<any>;
     const treeNodes = root.descendants();
-    treeNodes.forEach(node => { node.y = node.depth * 300; });
+    treeNodes.forEach(node => { node.y = node.depth * 250; });
     return { nodes: treeNodes, links: root.links() };
-  }, []);
+  }, [activeTab]);
 
   const filteredMembers = Object.values(MURATOV_DATA).filter(m => 
     `${m.firstName} ${m.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
@@ -565,21 +811,28 @@ export default function App() {
       </div>
 
       {/* Navigation Sidebar */}
-      <nav className="w-full lg:w-24 bg-white/60 backdrop-blur-xl border border-emerald-100/50 flex flex-row lg:flex-col items-center justify-between lg:justify-start p-4 lg:py-8 z-[60] shadow-xl lg:m-4 lg:rounded-[2.5rem] transition-all duration-500" style={{ backgroundColor: `${theme.cardBg}90`, borderColor: `${theme.primary}20` }}>
+      <nav className="w-full lg:w-24 bg-white/60 backdrop-blur-xl border border-emerald-100/50 flex flex-row lg:flex-col items-center justify-between lg:justify-start p-1 sm:p-2 lg:p-4 lg:py-8 z-[60] shadow-xl lg:m-4 lg:rounded-[2.5rem] transition-all duration-500 overflow-x-auto lg:overflow-visible custom-scrollbar" style={{ backgroundColor: `${theme.cardBg}90`, borderColor: `${theme.primary}20` }}>
         <div className="hidden lg:flex items-center justify-center mb-12">
-          <div className="w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl" style={{ backgroundColor: theme.primary }}>
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl cursor-pointer hover:scale-110 active:scale-95 transition-transform" 
+            style={{ backgroundColor: theme.primary }}
+            title="Qayta yuklash"
+          >
             <TreeDeciduous size={32} />
-          </div>
+          </button>
         </div>
-        <div className="flex flex-row lg:flex-col gap-4 lg:gap-8 flex-1 justify-center lg:justify-start">
+        <div className="flex flex-row lg:flex-col gap-2 sm:gap-4 lg:gap-8 flex-1 justify-start lg:justify-start px-2 sm:px-4 lg:px-0 min-w-max">
           {[
-            { id: 'tree', icon: TreeDeciduous, label: 'Shajara' },
+            { id: 'myfamily', icon: Users, label: 'Asosiy' },
+            { id: 'tree', icon: TreeDeciduous, label: 'Umumiy' },
             { id: 'gallery', icon: ImageIcon, label: 'Galareya' },
             { id: 'history', icon: BookOpen, label: 'Tarix' },
+            { id: 'ai', icon: MessageSquare, label: 'AI Bot' },
             { id: 'settings', icon: SettingsIcon, label: 'Sozlamalar' }
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-              className={`p-4 rounded-3xl transition-all relative group flex flex-col items-center gap-1
+              className={`p-2 sm:p-4 rounded-3xl transition-all relative group flex flex-col items-center gap-1
                 ${activeTab === tab.id ? 'text-white' : 'hover:bg-emerald-50 text-gray-400'}`}
               style={{ 
                 backgroundColor: activeTab === tab.id ? theme.primary : 'transparent',
@@ -597,11 +850,20 @@ export default function App() {
       <AnimatePresence mode="wait">
         <motion.div key={activeTab} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1 flex overflow-hidden relative z-10">
           
-          {activeTab === 'tree' && (
+          {(activeTab === 'tree' || activeTab === 'myfamily') && (
             <>
-              {/* Sidebar Search */}
-              <div className="w-80 border border-emerald-100/30 bg-white/40 backdrop-blur-xl hidden lg:flex flex-col relative z-20 shadow-xl lg:my-4 lg:mr-4 lg:rounded-[2.5rem] overflow-hidden transition-all duration-500" style={{ backgroundColor: `${theme.cardBg}40`, borderColor: `${theme.primary}20` }}>
-                <div className="p-8 border-b border-emerald-50 space-y-6" style={{ borderColor: `${theme.primary}10` }}>
+              {/* Sidebar Search - Now Collapsible */}
+              <motion.div 
+                initial={false}
+                animate={{ 
+                  width: isSidebarOpen ? 320 : 0,
+                  opacity: isSidebarOpen ? 1 : 0,
+                  marginRight: isSidebarOpen ? 16 : 0
+                }}
+                className="border border-emerald-100/30 bg-white/40 backdrop-blur-xl hidden lg:flex flex-col relative z-20 shadow-xl lg:my-4 lg:rounded-[2.5rem] overflow-hidden transition-all duration-500" 
+                style={{ backgroundColor: `${theme.cardBg}40`, borderColor: `${theme.primary}20` }}
+              >
+                <div className="p-8 border-b border-emerald-50 space-y-6 shrink-0" style={{ borderColor: `${theme.primary}10` }}>
                   <div className="space-y-1">
                     <h2 className="text-3xl font-black italic tracking-tighter" style={{ color: theme.text }}>MURATOVLAR</h2>
                     <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: theme.primary }}>Avlodlar Davomi</p>
@@ -632,7 +894,16 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-              </div>
+              </motion.div>
+
+              {/* Sidebar Toggle Button */}
+              <button 
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="fixed bottom-10 left-32 z-50 p-4 rounded-2xl bg-white shadow-2xl border-2 transition-all hover:scale-110 active:scale-95 hidden lg:flex items-center justify-center"
+                style={{ borderColor: `${theme.primary}20`, color: theme.primary }}
+              >
+                {isSidebarOpen ? <ChevronRight className="rotate-180" /> : <ChevronRight />}
+              </button>
 
               {/* Tree Area */}
               <main 
@@ -656,10 +927,10 @@ export default function App() {
                 )}
                 
                 <div 
-                  className="min-w-[1500px] min-h-[1500px] relative origin-top transition-transform duration-300"
+                  className="min-w-[20000px] min-h-[5000px] relative origin-top transition-transform duration-300"
                   style={{ transform: `scale(${zoom})` }}
                 >
-                  <svg className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible" style={{ minWidth: '2000px', minHeight: '2000px' }}>
+                  <svg className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible" style={{ minWidth: '20000px', minHeight: '5000px' }}>
                     <defs>
                       <filter id="leafShadow">
                         <feDropShadow dx="2" dy="2" stdDeviation="2" floodOpacity="0.3" />
@@ -675,7 +946,7 @@ export default function App() {
                         <stop offset="100%" stopColor="rgba(20, 83, 45, 0)" />
                       </radialGradient>
                     </defs>
-                    <g transform="translate(750, 100)">
+                    <g transform="translate(10000, 100)">
                       {/* Clean Connecting Lines */}
                       {links.map((link, i) => {
                         const sourceX = (link.source as any).x;
@@ -710,26 +981,67 @@ export default function App() {
                               transition={{ duration: 1.5, delay: i * 0.05 }}
                               d={d} 
                               fill="none" 
-                              stroke="#6D4C41" 
-                              strokeWidth={3} 
+                              stroke="#94a3b8" 
+                              strokeWidth={2} 
                               strokeLinecap="round" 
                               strokeLinejoin="round"
                             />
                             {/* Connection dots */}
-                            <circle cx={sourceX} cy={sourceY} r="4" fill="#6D4C41" />
-                            <circle cx={targetX} cy={targetY} r="4" fill="#6D4C41" />
+                            <circle cx={sourceX} cy={sourceY} r="3" fill="#94a3b8" />
+                            <circle cx={targetX} cy={targetY} r="3" fill="#94a3b8" />
                           </g>
                         );
                       })}
                     </g>
                   </svg>
                   <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                    <div className="relative" style={{ transform: 'translate(750px, 100px)' }}>
+                    <div className="relative" style={{ transform: 'translate(10000px, 100px)' }}>
                       {/* Nodes rendered here */}
                       {nodes.map(node => (
-                        <div key={node.data.id} className="pointer-events-auto">
-                          <MemberNode member={node.data} x={node.x} y={node.y} isSelected={selectedId === node.data.id} onClick={() => setSelectedId(node.data.id)} theme={theme} />
-                        </div>
+                        <React.Fragment key={node.data.id}>
+                          <div className="pointer-events-auto">
+                            <MemberNode member={node.data} x={node.x} y={node.y} isSelected={selectedId === node.data.id} onClick={() => setSelectedId(node.data.id)} theme={theme} />
+                          </div>
+                          {node.data.spouses?.map((spouseId: string, idx: number) => {
+                            const spouse = MURATOV_DATA[spouseId];
+                            if (!spouse) return null;
+                            const spouseX = node.x + (140 * (idx + 1));
+                            return (
+                              <React.Fragment key={spouse.id}>
+                                {/* Connection between spouses */}
+                                <svg className="absolute pointer-events-none overflow-visible" style={{ left: node.x + 65, top: node.y - 12 }}>
+                                  <motion.path
+                                    initial={{ pathLength: 0, opacity: 0 }}
+                                    animate={{ pathLength: 1, opacity: 1 }}
+                                    d={`M 0 0 L ${spouseX - node.x - 130} 0`}
+                                    fill="none"
+                                    stroke={theme.primary}
+                                    strokeWidth={3}
+                                    strokeDasharray="4 2"
+                                    className="opacity-20"
+                                  />
+                                  <motion.g 
+                                    initial={{ scale: 0 }} 
+                                    animate={{ scale: 1 }} 
+                                    style={{ x: (spouseX - node.x - 150) / 2 }}
+                                  >
+                                    <Heart size={16} fill={selectedId === node.data.id || selectedId === spouse.id ? theme.primary : `${theme.primary}40`} stroke="none" className="translate-x-[-8px] translate-y-[-8px]" />
+                                  </motion.g>
+                                </svg>
+                                <div className="pointer-events-auto">
+                                  <MemberNode 
+                                    member={spouse} 
+                                    x={spouseX} 
+                                    y={node.y} 
+                                    isSelected={selectedId === spouse.id} 
+                                    onClick={() => setSelectedId(spouse.id)} 
+                                    theme={theme} 
+                                  />
+                                </div>
+                              </React.Fragment>
+                            );
+                          })}
+                        </React.Fragment>
                       ))}
                     </div>
                   </div>
@@ -763,6 +1075,14 @@ export default function App() {
                        >
                          {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
                        </button>
+                       <button 
+                          onClick={() => window.open(window.location.href, '_blank')}
+                          className="p-2 rounded-xl transition-all hover:bg-emerald-50"
+                          style={{ color: theme.primary }}
+                          title="Yangi oynada ochish"
+                        >
+                          <ExternalLink size={18} />
+                        </button>
                      </div>
 
                      <div className="flex flex-col items-center py-1">
@@ -789,6 +1109,18 @@ export default function App() {
           {activeTab === 'history' && (
             <main className="flex-1 overflow-y-auto custom-scrollbar">
               <HistorySection theme={theme} />
+            </main>
+          )}
+
+          {activeTab === 'ai' && (
+            <main className="flex-1 overflow-y-auto custom-scrollbar">
+              <AISection 
+                theme={theme} 
+                messages={aiMessages} 
+                setMessages={setAiMessages}
+                input={aiInput}
+                setInput={setAiInput}
+              />
             </main>
           )}
 
